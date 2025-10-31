@@ -1,0 +1,107 @@
+build-docker-api-job-prod:
+  stage: build
+  only:
+    refs:
+      - main
+      - master
+  when: manual
+  image: docker:latest
+  environment: production
+  services:
+    - docker:dind
+  allow_failure: false
+  variables:
+    DOCKER_IMAGE_TAG: $CI_REGISTRY_IMAGE:latest-api
+  before_script:
+    - echo "Logging in to $CI_REGISTRY..."
+    - echo "ci-commit-branch $CI_COMMIT_BRANCH ci-commit-ref $CI_COMMIT_REF_NAME ci-registry-image $CI_REGISTRY_IMAGE ci-deploy-user $CI_DEPLOY_USER"
+    - echo "docker-path $DOCKER_PATH service-app-path $SERVICE_APP_PATH service-name $CI_PROJECT_NAME company-name $COMPANY_NAME"
+    - docker login $CI_REGISTRY -u $CI_DEPLOY_USER -p $CI_DEPLOY_PASSWORD
+  script:
+    - echo "Docker build starting. buildNumber $CI_PIPELINE_ID and image-tag $DOCKER_IMAGE_TAG "
+    - docker build --rm -f $DOCKER_PATH -t $DOCKER_IMAGE_TAG .
+    - docker push $DOCKER_IMAGE_TAG
+    - echo "Docker build complete."
+
+unittest:
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  stage: test
+  variables:
+    COVERAGE_OUTPUT_DIR: "TestResults/coverage"
+  script:
+    - dotnet test ./tests/SmsService.UnitTests/SmsService.UnitTests.csproj --configuration Release --no-build \
+      /p:CollectCoverage=true \
+      /p:CoverletOutput=${COVERAGE_OUTPUT_DIR}/ \
+      /p:CoverletOutputFormat=cobertura
+  artifacts:
+    when: always
+    paths:
+      - ${COVERAGE_OUTPUT_DIR}/
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: ${COVERAGE_OUTPUT_DIR}/coverage.cobertura.xml
+    expire_in: 7 days
+  coverage: '/Total\s*\d+\s*\d+\s*(\d+)%/'
+
+coverage-report:
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  stage: coverage
+  only:
+    refs:
+      - main
+      - master
+  needs:
+    - job: unittest
+      artifacts: true
+  script:
+    - dotnet tool install --global dotnet-reportgenerator-globaltool
+    - export PATH="$PATH:/root/.dotnet/tools"
+    - reportgenerator -reports:"${COVERAGE_OUTPUT_DIR}/coverage.cobertura.xml" \
+      -targetdir:"${COVERAGE_OUTPUT_DIR}-report" \
+      -reporttypes:Html
+  artifacts:
+    paths:
+      - ${COVERAGE_OUTPUT_DIR}-report/
+    expire_in: 7 days
+  
+
+deploy-dok-api-job-prod:
+  stage: deploy
+  image: alpine:latest
+  only:
+    refs:
+      - main
+      - master
+  when: manual
+  environment: production
+  variables:
+    K8S_NAMESPACE: default # $K8S_NAMESPACE_PROD
+    K8S_CLUSTER_NAME: moon-k8s
+    K8S_DOCKER_REGISTRY_SECRET_NAME: gitlab-registry-secret-$SERVICE_NAME-$K8S_CLUSTER_NAME
+    SERVICE_ENVIRONMENT: Production
+    DOCKER_IMAGE_TAG: $CI_REGISTRY_IMAGE:latest-api
+    MANIFEST_PATH: k8s-manifests/api
+    SERVICE_PORT: 80 # service cluster port
+    LOGGING_LOGLEVEL_DEFAULT: "Warning"
+    LOGGING_LOGLEVEL_PROXYLOGGER: "Error"
+  before_script:
+    - apk add --no-cache curl gettext base64
+    - curl -LO "https://github.com/digitalocean/doctl/releases/download/v1.73.0/doctl-1.73.0-linux-amd64.tar.gz"
+    - tar -xzvf doctl-1.73.0-linux-amd64.tar.gz
+    - mv doctl /usr/local/bin/
+    - curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+    - chmod +x ./kubectl
+    - mv kubectl /usr/local/bin/
+    - mkdir -p ~/.kube
+    - doctl auth init -t $DO_API_TOKEN
+    - doctl kubernetes cluster kubeconfig save $K8S_CLUSTER_NAME
+    - kubectl create secret docker-registry $K8S_DOCKER_REGISTRY_SECRET_NAME --docker-server=$CI_REGISTRY --docker-username=$CI_DEPLOY_USER --docker-password=$CI_DEPLOY_PASSWORD --namespace=$K8S_NAMESPACE || true
+  script:
+    - echo "Deploying application to kubernetes server ..."
+    - envsubst < $MANIFEST_PATH/config.yaml | kubectl apply -n $K8S_NAMESPACE -f -
+    - envsubst < $MANIFEST_PATH/hpa.yaml | kubectl apply -n $K8S_NAMESPACE -f -
+    - envsubst < $MANIFEST_PATH/deployment.yaml | kubectl apply -n $K8S_NAMESPACE -f -
+    - envsubst < $MANIFEST_PATH/service.yaml | kubectl apply -n $K8S_NAMESPACE -f -
+    - kubectl rollout restart deployment $SERVICE_NAME -n $K8S_NAMESPACE
+    - echo "Application successfully deployed to kubernetes."

@@ -1,0 +1,59 @@
+build-docker-api-job-dev:
+  stage: build
+  image: docker:latest
+  environment: development
+  services:
+    - docker:dind
+  allow_failure: false
+  variables:
+    DOCKER_IMAGE_TAG: $CI_REGISTRY_IMAGE:v$CI_PIPELINE_ID-api
+  before_script:
+    - echo "Logging in to $CI_REGISTRY..."
+    - echo "ci-commit-branch $CI_COMMIT_BRANCH ci-commit-ref $CI_COMMIT_REF_NAME ci-registry-image $CI_REGISTRY_IMAGE ci-deploy-user $CI_DEPLOY_USER"
+    - echo "docker-path $DOCKER_PATH service-app-path $SERVICE_APP_PATH service-name $CI_PROJECT_NAME company-name $COMPANY_NAME"
+    - docker login $CI_REGISTRY -u $CI_DEPLOY_USER -p $CI_DEPLOY_PASSWORD
+  script:
+    - echo "Docker build starting. buildNumber $CI_PIPELINE_ID and image-tag $DOCKER_IMAGE_TAG "
+    - docker build --rm -f $DOCKER_PATH -t $DOCKER_IMAGE_TAG .
+    - docker push $DOCKER_IMAGE_TAG
+    - echo "Docker build complete."
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: never
+    - when: manual
+
+deploy-docker-api-job-dev:
+  stage: deploy
+  environment: development
+  variables:
+    SERVICE_ENVIRONMENT: Development
+    DOCKER_IMAGE_TAG: $CI_REGISTRY_IMAGE:v$CI_PIPELINE_ID-api
+  before_script:
+    - echo "server key $SERVER_SSH_PRIVATE_KEY server host $SERVER_HOST server user $SERVER_SSH_USER"
+    - chmod 400 $SERVER_SSH_PRIVATE_KEY
+    - apk add --no-cache curl gettext base64
+  script:
+    - echo "Deploying application to docker to server ..."
+    - ssh -o StrictHostKeyChecking=no -i $SERVER_SSH_PRIVATE_KEY "${SERVER_SSH_USER}@${SERVER_HOST}" "docker login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}"
+    - ssh -o StrictHostKeyChecking=no -i $SERVER_SSH_PRIVATE_KEY "${SERVER_SSH_USER}@${SERVER_HOST}" "docker rm -f ${CI_PROJECT_NAME} || true"
+    - ssh -o StrictHostKeyChecking=no -i $SERVER_SSH_PRIVATE_KEY "${SERVER_SSH_USER}@${SERVER_HOST}" "docker rmi -f \$(docker images -q $CI_REGISTRY_IMAGE) || true"
+    - ssh -o StrictHostKeyChecking=no -i $SERVER_SSH_PRIVATE_KEY "${SERVER_SSH_USER}@${SERVER_HOST}" "
+        docker run 
+        --name $CI_PROJECT_NAME 
+        -p $SERVICE_PORT:$DOCKER_CONTAINER_SERVICE_PORT 
+        -e ASPNETCORE_ENVIRONMENT=$SERVICE_ENVIRONMENT 
+        -e Services__IletiMerkeziService__Key=$ILETIMERKEZI_KEY 
+        -e Services__IletiMerkeziService__Hash=$ILETIMERKEZI_HASH 
+        -e Services__TwilioService__AccountSID=$TWILIO_ACCOUNT_SID 
+        -e Services__TwilioService__AuthToken=$TWILIO_AUTH_TOKEN 
+        -d $DOCKER_IMAGE_TAG
+      "
+    - echo "Application successfully deployed to server."
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+      when: never
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: never
+    - when: manual

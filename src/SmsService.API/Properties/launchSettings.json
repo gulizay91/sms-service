@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "local": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:6119",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "",
+        "Services__IletiMerkeziService__Key": "<Services__IletiMerkeziService__Key>",
+        "Services__IletiMerkeziService__Hash": "<Services__IletiMerkeziService__Hash>",
+        "Services__TwilioService__AccountSID": "<Services__TwilioService__AccountSID>",
+        "Services__TwilioService__AuthToken": "<Services__TwilioService__AuthToken>"
+      }
+    },
+    "dev": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "https://localhost:7012;http://localhost:5119",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Services__IletiMerkeziService__Key": "<Services__IletiMerkeziService__Key>",
+        "Services__IletiMerkeziService__Hash": "<Services__IletiMerkeziService__Hash>",
+        "Services__TwilioService__AccountSID": "<Services__TwilioService__AccountSID>",
+        "Services__TwilioService__AuthToken": "<Services__TwilioService__AuthToken>"
+      }
+    },
+    "prod": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:5119",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Production",
+        "Services__IletiMerkeziService__Key": "<Services__IletiMerkeziService__Key>",
+        "Services__IletiMerkeziService__Hash": "<Services__IletiMerkeziService__Hash>",
+        "Services__TwilioService__AccountSID": "<Services__TwilioService__AccountSID>",
+        "Services__TwilioService__AuthToken": "<Services__TwilioService__AuthToken>"
+      }
+    }
+  }
+}

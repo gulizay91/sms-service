@@ -1,0 +1,12 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: ${SERVICE_NAME}-configs
+data:
+  # Configuration values can be set as key-value properties
+  ASPNETCORE_ENVIRONMENT: ${SERVICE_ENVIRONMENT}
+  Services__IletiMerkeziService__Key: "${ILETIMERKEZI_KEY}"
+  Services__IletiMerkeziService__Hash: "${ILETIMERKEZI_HASH}"
+  Services__TwilioService__AccountSID: "${TWILIO_ACCOUNT_SID}"
+  Services__TwilioService__AuthToken: "${TWILIO_AUTH_TOKEN}"
+  Logging__LogLevel__Default: "${LOGGING_LOGLEVEL_DEFAULT}"

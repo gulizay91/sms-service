@@ -1,0 +1,44 @@
+stages:
+  - build
+  - test
+  - coverage
+  - deploy
+
+default:
+  image: docker:latest
+  services:
+    - docker:dind
+
+variables:
+  COVERAGE_OUTPUT_DIR: "TestResults/coverage"
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_DRIVER: overlay2
+  COMPANY_NAME: moon
+  DOCKER_IMAGE_TAG: $CI_REGISTRY_IMAGE:v$CI_PIPELINE_ID
+  K8S_NAMESPACE_DEV: k8s-ns-dev
+  K8S_NAMESPACE_PROD: k8s-ns-prod
+  # Define the following variables via service
+  DOCKER_PATH: src/SmsService.API/Dockerfile
+  SERVICE_APP_PATH: src/SmsService.API
+  SERVICE_NAME: sms-service
+  SERVICE_PORT: 7091
+  DOCKER_CONTAINER_SERVICE_PORT: 8080
+  LOGGING_LOGLEVEL_DEFAULT: "Warning"
+  LOGGING_LOGLEVEL_PROXYLOGGER: "Error"
+  # Define the following variables in your GitLab project's CI/CD settings
+#  SERVER_HOST: $SERVER_HOST # This is the IP address of the server where you want to deploy your application.
+#  SERVER_SSH_USER: $SERVER_SSH_USER # This is the username of the server where you want to deploy your application.
+#  SERVER_SSH_PRIVATE_KEY: $SERVER_SSH_PRIVATE_KEY # This is the private key of the server where you want to deploy your application.
+#  KUBE_SERVER: $KUBE_SERVER # This is the Kubernetes server URL.
+#  KUBE_TOKEN: $KUBE_TOKEN # This is the Kubernetes token.
+#  DO_API_TOKEN: $DO_API_TOKEN # This is the DigitalOcean API token.
+#  ILETIMERKEZI_KEY: $ILETIMERKEZI_KEY
+#  ILETIMERKEZI_HASH: $ILETIMERKEZI_HASH
+#  TWILIO_ACCOUNT_SID: $TWILIO_ACCOUNT_SID
+#  TWILIO_AUTH_TOKEN: $TWILIO_AUTH_TOKEN
+
+# pipelines based on environment
+include:
+  - local: "gitlab-manifests/api/dev/.gitlab-ci.yml"
+  - local: "gitlab-manifests/api/staging/.gitlab-ci.yml"
+  - local: "gitlab-manifests/api/prod/.gitlab-ci.yml"

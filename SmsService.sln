@@ -1,0 +1,42 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{BB65146A-5911-4AA6-AFDA-B67511CA6B59}"
+	ProjectSection(SolutionItems) = preProject
+		tests\Dockerfile = tests\Dockerfile
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmsService.API", "src\SmsService.API\SmsService.API.csproj", "{D2088C21-0A9D-4186-A5D3-C41CDC36E868}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmsService.Application", "src\SmsService.Application\SmsService.Application.csproj", "{036AEFE6-894A-4EFF-B326-E6DCDD4D4890}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmsService.Infrastructure", "src\SmsService.Infrastructure\SmsService.Infrastructure.csproj", "{A608F988-1856-44A8-9FF8-FEF592B61E74}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmsService.UnitTests", "tests\SmsService.UnitTests\SmsService.UnitTests.csproj", "{6FE6DA3E-BDB1-4C67-ABEB-200A7BED2A98}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D2088C21-0A9D-4186-A5D3-C41CDC36E868}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2088C21-0A9D-4186-A5D3-C41CDC36E868}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2088C21-0A9D-4186-A5D3-C41CDC36E868}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2088C21-0A9D-4186-A5D3-C41CDC36E868}.Release|Any CPU.Build.0 = Release|Any CPU
+		{036AEFE6-894A-4EFF-B326-E6DCDD4D4890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{036AEFE6-894A-4EFF-B326-E6DCDD4D4890}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{036AEFE6-894A-4EFF-B326-E6DCDD4D4890}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{036AEFE6-894A-4EFF-B326-E6DCDD4D4890}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A608F988-1856-44A8-9FF8-FEF592B61E74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A608F988-1856-44A8-9FF8-FEF592B61E74}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A608F988-1856-44A8-9FF8-FEF592B61E74}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A608F988-1856-44A8-9FF8-FEF592B61E74}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6FE6DA3E-BDB1-4C67-ABEB-200A7BED2A98}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6FE6DA3E-BDB1-4C67-ABEB-200A7BED2A98}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6FE6DA3E-BDB1-4C67-ABEB-200A7BED2A98}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6FE6DA3E-BDB1-4C67-ABEB-200A7BED2A98}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{6FE6DA3E-BDB1-4C67-ABEB-200A7BED2A98} = {BB65146A-5911-4AA6-AFDA-B67511CA6B59}
+	EndGlobalSection
+EndGlobal

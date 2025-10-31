@@ -1,0 +1,60 @@
+build-docker-api-job-staging:
+  stage: build
+  only:
+    refs:
+      - /^(release|release_v[0-9]+(?:\.[0-9]+)+)$/ # regular expression release, release_v1.0, release_v1.1, and release_v1.1.0
+  when: manual
+  image: docker:latest
+  environment: staging
+  services:
+    - docker:dind
+  allow_failure: false
+  variables:
+    DOCKER_IMAGE_TAG: $CI_REGISTRY_IMAGE:v$CI_PIPELINE_ID-api
+  before_script:
+    - echo "Logging in to $CI_REGISTRY..."
+    - echo "ci-commit-branch $CI_COMMIT_BRANCH ci-commit-ref $CI_COMMIT_REF_NAME ci-registry-image $CI_REGISTRY_IMAGE ci-deploy-user $CI_DEPLOY_USER"
+    - echo "docker-path $DOCKER_PATH service-app-path $SERVICE_APP_PATH service-name $CI_PROJECT_NAME company-name $COMPANY_NAME"
+    - docker login $CI_REGISTRY -u $CI_DEPLOY_USER -p $CI_DEPLOY_PASSWORD
+  script:
+    - echo "Docker build starting. buildNumber $CI_PIPELINE_ID and image-tag $DOCKER_IMAGE_TAG "
+    - docker build --rm -f $DOCKER_PATH -t $DOCKER_IMAGE_TAG .
+    - docker push $DOCKER_IMAGE_TAG
+    - echo "Docker build complete."
+
+deploy-dok-api-job-staging:
+  stage: deploy
+  image: alpine:latest
+  only:
+    refs:
+      - /^(release|release_v[0-9]+(?:\.[0-9]+)+)$/ # regular expression release, release_v1.0, release_v1.1, and release_v1.1.0
+  when: manual
+  environment: staging
+  variables:
+    K8S_NAMESPACE: default
+    K8S_CLUSTER_NAME: notification-k8s-staging
+    K8S_DOCKER_REGISTRY_SECRET_NAME: gitlab-registry-secret-$SERVICE_NAME-$K8S_CLUSTER_NAME
+    SERVICE_ENVIRONMENT: Staging
+    DOCKER_IMAGE_TAG: $CI_REGISTRY_IMAGE:v$CI_PIPELINE_ID-api
+    MANIFEST_PATH: k8s-manifests/api
+    SERVICE_PORT: 80 # service cluster port
+  before_script:
+    - apk add --no-cache curl gettext base64
+    - curl -LO "https://github.com/digitalocean/doctl/releases/download/v1.73.0/doctl-1.73.0-linux-amd64.tar.gz"
+    - tar -xzvf doctl-1.73.0-linux-amd64.tar.gz
+    - mv doctl /usr/local/bin/
+    - curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+    - chmod +x ./kubectl
+    - mv kubectl /usr/local/bin/
+    - mkdir -p ~/.kube
+    - doctl auth init -t $DO_API_TOKEN
+    - doctl kubernetes cluster kubeconfig save $K8S_CLUSTER_NAME
+    - kubectl create secret docker-registry $K8S_DOCKER_REGISTRY_SECRET_NAME --docker-server=$CI_REGISTRY --docker-username=$CI_DEPLOY_USER --docker-password=$CI_DEPLOY_PASSWORD --namespace=$K8S_NAMESPACE || true
+  script:
+    - echo "Deploying application to kubernetes server ..."
+    - envsubst < $MANIFEST_PATH/config.yaml | kubectl apply -n $K8S_NAMESPACE -f -
+    - envsubst < $MANIFEST_PATH/hpa.yaml | kubectl apply -n $K8S_NAMESPACE -f -
+    - envsubst < $MANIFEST_PATH/deployment.yaml | kubectl apply -n $K8S_NAMESPACE -f -
+    - envsubst < $MANIFEST_PATH/service.yaml | kubectl apply -n $K8S_NAMESPACE -f -
+    - kubectl rollout restart deployment $SERVICE_NAME -n $K8S_NAMESPACE
+    - echo "Application successfully deployed to kubernetes."
